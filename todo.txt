@@ -1,0 +1,4 @@
+- delete file/directory
+- append to file
+- create directory
+- interact with actual computer filesystem
