@@ -37,6 +37,10 @@ HOW TO USE
 - If trying to use any command other than s, sr, bd, or q, you must use '- ' to access the file or directory you want. Without using '- ' you will either encounter 'command not found' or you will not be able to access the file/directory or create a file/directory missing the first letter.
 - Why do you need '- ' only when accessing files?
   - '-' will tell the program that is the end of the command. If the command doesn't need a '-' the program knows this because it has already reached the end of the line in the partition. The ' ' after the '-' is from the program moving onto the next 2 indexes beyond the command. It also looks better when using the filesystem.
+- Example
+  [^] cmd: s
+  [^] cmd: w- file
+  
 
 To Be Added
 -
