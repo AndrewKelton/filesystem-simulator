@@ -48,7 +48,7 @@ cmd: s
 cmd: w- file
 
 HELLO
-to finish writing press press return
+to finish writing press return
 hello
 
 
