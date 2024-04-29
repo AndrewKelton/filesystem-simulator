@@ -14,6 +14,7 @@ typedef struct {
     bool write;
     bool printd;
     bool cd;
+    bool back;
     bool newd;
     bool save;
     bool status; // status of terminal
@@ -51,7 +52,9 @@ void rfile(files * f); // read file print to terminal
 void rwfile(files * f); // read and append to file
 void printFT(files * f); // print files in directory
 void saveF(files * tmp); // save file to computer
-void performOp(controls * c, char * fname, directory * D); // perform operations
+directory * performOp(controls * c, char * fname, directory * D); // perform operations
+void freeD(directory * D);
+void freeF(files * f);
 
 
 #endif

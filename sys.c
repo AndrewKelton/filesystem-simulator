@@ -1,7 +1,7 @@
 #include "filesys.h"
 #define MAX 99999999
 #define MAXLINE 80
-#define MAXFLEN 100000
+#define MAXFLEN 1000
 
 // set all controls false
 void initc(controls * c) {
@@ -11,17 +11,19 @@ void initc(controls * c) {
     c->write = false;
     c->printd = false;
     c->cd = false;
+    c->back = false;
     c->newd = false;
     c->save = false;
     c->status = true;
 }
 
-// reset changed controls
+// reset controls
 void resetc(controls * c) {
     c->read = false;
     c->write = false;
     c->printd = false;
     c->cd = false;
+    c->back = false;
     c->newd = false;
     c->save = false;
 }
@@ -32,7 +34,7 @@ directory * initD(directory * pD, char * n) {
     D->fs = NULL;
     D->left = NULL;
     D->right = NULL;
-    D->name = n;
+    D->name =  strdup(n);
     D->parent = pD;
     D->len = 0;
     return D;
@@ -55,6 +57,15 @@ files * createF(char * fname, char * f) {
 // set controls for operation
 bool setc(unsigned op, controls * c) {
     switch(op) {
+        case 0x62 + 0x64: // to parent directory
+            c->cd = true;
+            c->back = true;
+        case 0x63 + 0x64: // change directory
+            c->cd = true;
+            break;
+        case 0x6e + 0x64: // create new directory 
+            c->newd = true;
+            break; 
         case 0x70: // print directory contents
             c->printd = true;
             break;
@@ -63,17 +74,17 @@ bool setc(unsigned op, controls * c) {
             c->status = false;
             break;
         case 0x72: // read file
-            c->read = c->allow || c->root;
+            c->read = true;
             break;
         case 0x73 + 0x61: // save file to computer
             c->save = true;
             break;
         case 0x77: // write & create file
-            c->write = c->allow || c->root;
+            c->write = true;
             break;
         case 0x72 + 0x77: // read & write file
-            c->read = c->allow || c->root;
-            c->write = c->allow || c->root;
+            c->read = true;
+            c->write = true;
             break;
         case 0x73: // sign in to user
             c->allow = true;
@@ -129,7 +140,7 @@ files * addFT(files * fs, char * fname, char * file) {
         strcpy(fs->name, fname);
         fs->f = malloc(sizeof(char) * strlen(file));
         strcpy(fs->f, file);
-        free(file);
+        // free(fname);
         return fs;
     }
     if (compstrngs(fs->name, fname)) fs->left = addFT(fs->left, fname, file);
@@ -145,9 +156,10 @@ void wfile(char * fname, directory * D) {
 
     if (fgets(f, MAXFLEN-1, stdin) == NULL) f[strlen(f+1)] = '\0';
 
-    // add to minheap 
+    // add to tree 
     D->fs = addFT(D->fs, fname, f);
     D->len++;
+    free(f);
 
     printf("\n");
 }
@@ -190,11 +202,14 @@ void rwfile(files * f) {
     char * buffer = malloc(sizeof(char) * MAXFLEN-len);
     printf("to finish writing press press return\n");
     if (fgets(buffer, MAXFLEN-1, stdin) == NULL) buffer[strlen(buffer + 1)] = '\0';
+    f->f[strlen(f->f)-1] = '\0';
     strcat(f->f, buffer);
+    free(buffer);
 
     printf("\n");
 }
 
+// save file to computer memory
 void saveF(files * tmp) {
     char * tmpname = malloc(sizeof(char) * (strlen(tmp->f) + 4));
     if (tmpname == NULL) {
@@ -212,8 +227,9 @@ void saveF(files * tmp) {
 }
 
 // do the operation
-void performOp(controls * c, char * fname, directory * D) {
+directory * performOp(controls * c, char * fname, directory * D) {
     files * tmp;
+    
     if (c->write && !c->read) {
         tmp = searchf(D->fs, fname);
         if (tmp == NULL) wfile(fname, D);
@@ -228,22 +244,52 @@ void performOp(controls * c, char * fname, directory * D) {
         else  printf("file does not exist\n");
     } else if (c->printd) {
         printD(D);
-    } else if (c->cd) {
-        if (strcmp(D->left->name, fname) == 0) {
-            D = D->left;
-        } else if (strcmp(D->right->name, fname) == 0) {
-            D = D->right;
-        } else {
+    } else if (c->cd && !c->back) {
+        if (D->left == NULL && D->right == NULL) {
             printf("directory does not exist\n");
+            goto jump;
         }
+        if (D->left != NULL) 
+            if (strcmp(D->left->name, fname) == 0) {
+                D = D->left;
+                goto jump;
+            }
+        if (D->right != NULL) 
+            if (strcmp(D->right->name, fname) == 0) {
+                D = D->right;
+                goto jump;
+            }
+        printf("directory does not exist\n");
     } else if (c->newd) {
-        if (strcmp(D->left->name, fname) != 0 && strcmp(D->right->name, fname) != 0) {
-            D = initD(D, fname);
-        } else if (D->left != NULL || D->right != NULL) {
-            printf("directory is already a child directory\n");
-        } else {
-            printf("no open directory path... cd and start again\n");
+        if (D->left == NULL && D->right == NULL) {
+            D->left = initD(D, fname);
+            goto jump;
         }
+        if (D->left == NULL && D->right != NULL) {
+            if (strcmp(D->right->name, fname) == 0) {
+                printf("directory is already a child directory\n");
+                goto jump;
+            } else {
+                D->left = initD(D, fname);
+                goto jump;
+            }
+        }
+        if (D->left != NULL && D->right == NULL) {
+            if (strcmp(D->left->name, fname) == 0) {
+                printf("directory is already a child directory\n");
+                goto jump;
+            } else {
+                D->right = initD(D, fname);
+                goto jump;
+            }
+        }
+        if  (D->left != NULL && D->right != NULL) {
+            printf("no open directory path... cd and start again\n");
+            goto jump;
+        }
+    } else if (c->cd && c->back) {
+        if (D->parent == NULL) printf("no parent directory...\n");
+        else D = D->parent;
     } else if (c->save) {
         tmp = searchf(D->fs, fname);
         if (tmp == NULL) printf("file does not exist\n");
@@ -251,5 +297,28 @@ void performOp(controls * c, char * fname, directory * D) {
             saveF(tmp);
         }
     }
+    jump: // jump point
+
     resetc(c);
+    return D;
+}
+
+// free directories
+void freeD(directory * D) {
+    if (D == NULL) return;
+    freeD(D->left);
+    freeD(D->right);
+    freeF(D->fs);
+    free(D->name);
+    free(D);
+}
+
+// free files 
+void freeF(files * f) {
+    if (f == NULL) return;
+    freeF(f->left);
+    freeF(f->right);
+    free(f->name);
+    free(f->f);
+    free(f);
 }

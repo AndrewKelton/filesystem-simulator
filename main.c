@@ -1,7 +1,6 @@
 #include "filesys.h"
-#define USERS
 #define MAX 99999999
-#define INSTR_SZ 3
+#define INSTR_SZ 3 // instruction size
 
 // get input
 char * input(char * line) {
@@ -45,7 +44,6 @@ void linePartition(char * line, char ** cmd, char ** file) {
 } 
 
 int main(void) {
-
     controls * c = malloc(sizeof(controls));
     if (c == NULL) exit(1);
     initc(c);
@@ -53,8 +51,7 @@ int main(void) {
     char root[] = "root";
     directory * D = initD(NULL, root);
 
-    char * line = malloc(sizeof(char) * MAX);
-    if (line == NULL) exit(1);
+    char * line;
 
     char * instruction = NULL;
     char * file = NULL;
@@ -62,17 +59,23 @@ int main(void) {
 
     // get input until 'q' inputted
     while (c->status) {
+        line = malloc(sizeof(char) * MAX);
+        if (line == NULL) {
+            printf("memory allocation failed\n");
+            exit(1);
+        }
         line = input(line);
         linePartition(line, &instruction, &file);
+        free(line);
         if (opfetch(instruction, &op)) {
             if (setc(op, c)) {
                 printf("\n");
                 if (op == 0x73 || op == 0x73 + 0x72 || !c->status) {
-                    continue;
+                    goto jump; // skip to jump
                 } else if (!c->allow && !c->root) {
                     printf("you must login first to access commands\n");
                 } else {
-                    performOp(c, file, D);
+                    D = performOp(c, file, D);
                 }
             } else {
                 printf("command not found\n");
@@ -80,10 +83,16 @@ int main(void) {
         } else {
             printf("command not found\n");
         }
+        jump: // jump point
         printf("\n");
         free(instruction);
         free(file);
+        instruction = NULL;
+        file = NULL;
     }
-    free(line);
     free(c);
+    while (D->parent != NULL) {
+        D = D->parent;
+    }
+    freeD(D); // free all directory data
 }
