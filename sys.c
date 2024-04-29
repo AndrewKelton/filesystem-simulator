@@ -60,6 +60,7 @@ bool setc(unsigned op, controls * c) {
         case 0x62 + 0x64: // to parent directory
             c->cd = true;
             c->back = true;
+            break;
         case 0x63 + 0x64: // change directory
             c->cd = true;
             break;
