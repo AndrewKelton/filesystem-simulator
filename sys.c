@@ -14,6 +14,7 @@ void initc(controls * c) {
     c->back = false;
     c->newd = false;
     c->save = false;
+    c->rm = false;
     c->status = true;
 }
 
@@ -26,6 +27,7 @@ void resetc(controls * c) {
     c->back = false;
     c->newd = false;
     c->save = false;
+    c->rm = false;
 }
 
 // initialize directory
@@ -77,6 +79,9 @@ bool setc(unsigned op, controls * c) {
         case 0x72: // read file
             c->read = true;
             break;
+        case 0x72 + 0x6D: // remove file
+            c->rm = true;
+            break;
         case 0x73 + 0x61: // save file to computer
             c->save = true;
             break;
@@ -103,15 +108,9 @@ bool setc(unsigned op, controls * c) {
 /* check if instruction within length boundaries, 
 will check if instruction is valid operation in setc */
 bool opfetch(char * instr, unsigned * op) {
-    int len = strlen(instr);
-
-    if (len == 0x1) *op = (int)instr[0];
-    else if (len == 0x2) {
-        *op = (int)instr[0];
-        *op += (int)instr[1];
-    } else {
-        return false;
-    }
+    if (instr[0] != '\0') *op = (int)instr[0];
+    else return false;
+    if (instr[1] != '\0') *op += (int)instr[1];
     return true;
 }
 
@@ -129,8 +128,9 @@ bool compstrngs(char * n1, char * n2) {
 files * searchf(files * fs, char * fname) {
     if (fs == NULL) return NULL;
     if (strcmp(fs->name, fname) == 0) return fs;
-    if (compstrngs(fs->name, fname)) searchf(fs->left, fname);
-    return searchf(fs->right, fname);
+    if (compstrngs(fs->name, fname)) fs = searchf(fs->left, fname);
+    else fs = searchf(fs->right, fname);
+    return fs;
 }
 
 // add file to D->fs Tree
@@ -153,7 +153,7 @@ files * addFT(files * fs, char * fname, char * file) {
 void wfile(char * fname, directory * D) {
     char * f = malloc(sizeof(char) * MAXFLEN);
     printf("HELLO\n");
-    printf("to finish writing press press return\n");
+    printf("to finish writing press return\n");
 
     if (fgets(f, MAXFLEN-1, stdin) == NULL) f[strlen(f+1)] = '\0';
 
@@ -227,6 +227,45 @@ void saveF(files * tmp) {
     free(tmpname);
 }
 
+// print directory path
+void printP(directory * D) {
+    if (D == NULL) return;
+    printP(D->parent);
+    printf("%s/", D->name);
+}
+
+// remove file in tree and update tree
+files * removef(files * fs, char * fname) {
+    if (fs == NULL) return NULL; // file doesn't exist random case never possible
+    if (strcmp(fs->name, fname) == 0) { // file found
+        if (fs->left == NULL) {
+            files * tmp = fs->right;
+            free(fs->f);
+            free(fs->name);
+            free(fs);
+            return tmp;
+        } else if (fs->right == NULL) {
+            files * tmp = fs->left;
+            free(fs->f);
+            free(fs->name);
+            free(fs);
+            return tmp;
+        } else if (fs->left && fs->left){
+            files * successor = fs->right;
+            while (successor->left) successor = successor->left;
+
+            fs->f = strdup(successor->f);
+            fs->name = strdup(successor->name);
+            free(successor->f);
+            free(successor->name);
+            free(successor);
+            fs->right = removef(fs->right, successor->f);
+        }
+    } else if (!(compstrngs(fname, fs->name))) fs->left = removef(fs->left, fname);
+    else if (compstrngs(fname, fs->name)) fs->right = removef(fs->right, fname);
+    return fs;
+}
+
 // do the operation
 directory * performOp(controls * c, char * fname, directory * D) {
     files * tmp;
@@ -244,7 +283,11 @@ directory * performOp(controls * c, char * fname, directory * D) {
         if (tmp != NULL) rwfile(tmp);
         else  printf("file does not exist\n");
     } else if (c->printd) {
-        printD(D);
+        if (fname == NULL) printD(D);
+        else if (strcmp(fname, "path") == 0){
+            printP(D);
+            printf("\n");
+        }
     } else if (c->cd && !c->back) {
         if (D->left == NULL && D->right == NULL) {
             printf("directory does not exist\n");
@@ -294,9 +337,11 @@ directory * performOp(controls * c, char * fname, directory * D) {
     } else if (c->save) {
         tmp = searchf(D->fs, fname);
         if (tmp == NULL) printf("file does not exist\n");
-        else {
-            saveF(tmp);
-        }
+        else saveF(tmp);
+    } else if (c->rm) {
+        tmp = searchf(D->fs, fname);
+        if (tmp == NULL) printf("file does not exist\n");
+        else D->fs = removef(D->fs, fname);
     }
     jump: // jump point
 
