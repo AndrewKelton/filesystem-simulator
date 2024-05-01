@@ -33,6 +33,7 @@ HOW TO USE
   | rm        | remove/delete file            |
   | sa        |  save file to computer           |
   | p        | print all files in directory            |
+  | p- path  | print path to current directory |
   | cd        | change directory            |
   | nd        | create new directory            |
   | bd        | change to parent directory            |
