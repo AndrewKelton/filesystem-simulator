@@ -30,6 +30,7 @@ HOW TO USE
   | w       | write/create file            |
   | r        |  read file           |
   | rw        | read/write to file            |
+  | rm        | remove/delete file            |
   | sa        |  save file to computer           |
   | p        | print all files in directory            |
   | cd        | change directory            |
