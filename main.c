@@ -75,7 +75,8 @@ int main(void) {
                 } else if (!c->allow && !c->root) {
                     printf("you must login first to access commands\n");
                 } else {
-                    D = performOp(c, file, D);
+                    if (file == NULL) printf("command not directed anywhere\n");
+                    else D = performOp(c, file, D);
                 }
             } else {
                 printf("command not found\n");
