@@ -72,6 +72,10 @@ bool setc(unsigned op, controls * c) {
         case 0x70: // print directory contents
             c->printd = true;
             break;
+        case 0x72 + 0x64: // remove directory and its contents
+            c->rm = true;
+            c->cd = true;
+            break;
         case 0x71: // quit terminal simulation
             initc(c);
             c->status = false;
@@ -141,7 +145,6 @@ files * addFT(files * fs, char * fname, char * file) {
         strcpy(fs->name, fname);
         fs->f = malloc(sizeof(char) * strlen(file));
         strcpy(fs->f, file);
-        // free(fname);
         return fs;
     }
     if (compstrngs(fs->name, fname)) fs->left = addFT(fs->left, fname, file);
@@ -170,7 +173,7 @@ void rfile(files * f) {
     int len = strlen(f->f);
     f->f[len] = '\0';
     for (int i = 0; i < len; i++) {
-        if (i % 80 == 0) printf("\n");
+        if (i % MAXLINE == 0) printf("\n");
         printf("%c", f->f[i]);
     }
     printf("\n");
@@ -238,19 +241,19 @@ void printP(directory * D) {
 files * removef(files * fs, char * fname) {
     if (fs == NULL) return NULL; // file doesn't exist random case never possible
     if (strcmp(fs->name, fname) == 0) { // file found
-        if (fs->left == NULL) {
+        if (fs->left == NULL) { // one child
             files * tmp = fs->right;
             free(fs->f);
             free(fs->name);
             free(fs);
             return tmp;
-        } else if (fs->right == NULL) {
+        } else if (fs->right == NULL) { // one child 
             files * tmp = fs->left;
             free(fs->f);
             free(fs->name);
             free(fs);
             return tmp;
-        } else if (fs->left && fs->left){
+        } else if (fs->left && fs->left){ // two children 
             files * successor = fs->right;
             while (successor->left) successor = successor->left;
 
@@ -264,6 +267,38 @@ files * removef(files * fs, char * fname) {
     } else if (!(compstrngs(fname, fs->name))) fs->left = removef(fs->left, fname);
     else if (compstrngs(fname, fs->name)) fs->right = removef(fs->right, fname);
     return fs;
+}
+
+// free directories
+void freeD(directory * D) {
+    if (D == NULL) return;
+    freeD(D->left);
+    freeD(D->right);
+    freeF(D->fs);
+    free(D->name);
+    free(D);
+}
+
+// free files 
+void freeF(files * f) {
+    if (f == NULL) return;
+    freeF(f->left);
+    freeF(f->right);
+    free(f->name);
+    free(f->f);
+    free(f);
+}
+
+// search for directory
+directory * searchd(directory * D, char * dname) {
+    if (D == NULL) return NULL;
+    if (strcmp(D->name, dname) == 0) return D;
+    directory * l = searchd(D->left, dname);
+    if (l != NULL) {
+        if (strcmp(l->name, dname) == 0) return l;
+    }
+    directory * r = searchd(D->right, dname);
+    return r;
 }
 
 // do the operation
@@ -287,6 +322,20 @@ directory * performOp(controls * c, char * fname, directory * D) {
         else if (strcmp(fname, "path") == 0){
             printP(D);
             printf("\n");
+        }
+    } else if (c->cd && c->rm) {
+        if (strcmp(D->name, fname) == 0) printf("cannot delete current directory\n");
+        else if (strcmp("root", fname) == 0) printf("cannot delete root\n");
+        else {
+            directory * tmp = searchd(D, fname);
+            if (tmp == NULL) printf("directory does not exist\n");
+            else {
+                if (tmp->parent->left != NULL) {
+                    if (strcmp(tmp->parent->left->name, tmp->name) == 0) tmp->parent->left = NULL;
+                    else tmp->parent->right = NULL;
+                } else tmp->parent->right = NULL;
+                freeD(tmp);
+            }
         }
     } else if (c->cd && !c->back) {
         if (D->left == NULL && D->right == NULL) {
@@ -343,28 +392,9 @@ directory * performOp(controls * c, char * fname, directory * D) {
         if (tmp == NULL) printf("file does not exist\n");
         else D->fs = removef(D->fs, fname);
     }
+
     jump: // jump point
 
     resetc(c);
     return D;
-}
-
-// free directories
-void freeD(directory * D) {
-    if (D == NULL) return;
-    freeD(D->left);
-    freeD(D->right);
-    freeF(D->fs);
-    free(D->name);
-    free(D);
-}
-
-// free files 
-void freeF(files * f) {
-    if (f == NULL) return;
-    freeF(f->left);
-    freeF(f->right);
-    free(f->name);
-    free(f->f);
-    free(f);
 }
