@@ -23,7 +23,7 @@ HOW TO USE
 2. gcc -o m main.c sys.c  # to compile
 3. ./m # to run
 - Supported Commands
-  | Command | Description |
+  | Command | Action |
   | ------- | ----------- |
   | s       | login       |
   | sr      | root login  |
