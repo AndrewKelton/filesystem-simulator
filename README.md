@@ -27,15 +27,15 @@ HOW TO USE
   | ------- | ----------- |
   | s       | login       |
   | sr      | root login  |
-  | w       | write/create file            |
-  | r        |  read file           |
-  | rw        | read/write to file            |
-  | rm        | remove/delete file            |
-  | sa        |  save file to computer           |
+  | w-       | write/create file            |
+  | r-        |  read file           |
+  | rw-        | read/write to file            |
+  | rm-        | remove/delete file            |
+  | sa-        |  save file to computer           |
   | p        | print all files in directory            |
   | p- path  | print path to current directory |
-  | cd        | change directory            |
-  | nd        | create new directory            |
+  | cd-        | change directory            |
+  | nd-        | create new directory            |
   | bd        | change to parent directory            |
   | q        |  quit           |
   
