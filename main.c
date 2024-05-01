@@ -25,7 +25,7 @@ void linePartition(char * line, char ** cmd, char ** file) {
     }
     (*cmd)[i] = '\0';
     
-    if (line[i] == '\0') {
+    if (line[i] == '\0' || line[i+1] == '\0') {
         *file = NULL;
         return;
     }
