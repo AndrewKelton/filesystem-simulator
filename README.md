@@ -27,7 +27,6 @@ HOW TO USE
   | ------- | ----------- |
   | s-       | login       |
   | nu-      | create new user |
-  | sr      | root login  |
   | w-       | write/create file            |
   | r-        |  read file           |
   | rw-        | read/write to file            |
