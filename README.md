@@ -36,6 +36,7 @@ HOW TO USE
   | p- path  | print path to current directory |
   | cd-        | change directory            |
   | nd-        | create new directory            |
+  | rd-        | remove/delete directory and all contents
   | bd        | change to parent directory            |
   | q        |  quit           |
   
