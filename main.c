@@ -25,7 +25,7 @@ void linePartition(char * line, char ** cmd, char ** file) {
     }
     (*cmd)[i] = '\0';
     
-    if (line[i] == '\0' || line[i+1] == '\0') {
+    if ((line[i] == '\0' || line[i+1] == '\0') || line[i] == '\n' || line[i+1] == '\n') {
         *file = NULL;
         return;
     }
@@ -66,7 +66,6 @@ int main(void) {
         }
         line = input(line);
         linePartition(line, &instruction, &file);
-        free(line);
         if (opfetch(instruction, &op)) {
             if (setc(op, c)) {
                 printf("\n");
@@ -75,7 +74,8 @@ int main(void) {
                 } else if (!c->allow && !c->root) {
                     printf("you must login first to access commands\n");
                 } else {
-                    if (file == NULL) printf("command not directed anywhere\n");
+                    if (c->back || c->printd) D = performOp(c, file, D);
+                    else if (file == NULL) printf("command not directed anywhere\n");
                     else D = performOp(c, file, D);
                 }
             } else {
@@ -85,6 +85,7 @@ int main(void) {
             printf("command not found\n");
         }
         jump: // jump point
+        free(line);
         printf("\n");
         free(instruction);
         free(file);

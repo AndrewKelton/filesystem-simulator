@@ -324,6 +324,7 @@ directory * performOp(controls * c, char * fname, directory * D) {
             printf("\n");
         }
     } else if (c->cd && c->rm) {
+        if (fname == NULL) printf("no directory named... aborting command\n");
         if (strcmp(D->name, fname) == 0) printf("cannot delete current directory\n");
         else if (strcmp("root", fname) == 0) printf("cannot delete root\n");
         else {
@@ -338,6 +339,10 @@ directory * performOp(controls * c, char * fname, directory * D) {
             }
         }
     } else if (c->cd && !c->back) {
+        if (fname == NULL) {
+            printf("no directory named... aborting command\n");
+            goto jump;
+        }
         if (D->left == NULL && D->right == NULL) {
             printf("directory does not exist\n");
             goto jump;
