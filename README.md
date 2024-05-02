@@ -11,7 +11,7 @@ Installation
 
 ABOUT filesys.h
 -
-- filesys.h is the library for accessing, creating, writing, reading, and saving files.
+- filesys.h is the header for accessing, creating, writing, reading, and saving files.
 - Data structures used in filesys.h:
   - Structs used for controls, directories, and files in directories. Controls are used to controls the flow of data control which functions are used for operations. Directories are implemented with a binary tree. Files are implemented using a binary search tree, comparing their values of characters with previously inputted files.
   
@@ -22,6 +22,7 @@ ABOUT filesys.c
 ABOUT main.c
 -
 - main.c implements the interaction between the user and the filesystem. main.c partitions the lines of the user's to grab the command and the file/directory it is directed to
+- main.c will check if the second field in your command is NULL and based on the appropriate command
 
 Supported Commands
 -
