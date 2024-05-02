@@ -22,7 +22,7 @@ ABOUT filesys.c
 ABOUT main.c
 -
 - main.c implements the interaction between the user and the filesystem. main.c partitions the lines of the user's to grab the command and the file/directory it is directed to
-- main.c will check if the second field in your command is NULL and based on the appropriate command
+- main.c will check if the second field in your command is NULL based on the appropriate command
 
 Supported Commands
 -
