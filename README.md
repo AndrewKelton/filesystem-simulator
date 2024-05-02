@@ -7,7 +7,8 @@ Installation
 -
 1. Download C files and header file
 2. Compile in terminal using ```gcc -o m main.c sys.c```
-3. Happy filing :)
+3. Run with ```./m```
+4. Happy filing :)
 
 ABOUT filesys.h
 -
