@@ -25,7 +25,8 @@ HOW TO USE
 - Supported Commands
   | Command | Action |
   | ------- | ----------- |
-  | s       | login       |
+  | s-       | login       |
+  | nu-      | create new user |
   | sr      | root login  |
   | w-       | write/create file            |
   | r-        |  read file           |
