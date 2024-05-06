@@ -49,7 +49,7 @@ Supported Commands
   - '-' will tell the program that is the end of the command. If the command doesn't need a '-' the program knows this because it has already reached the end of the line in the partition. Commands are partitioned by the first two indexes of line inputted by the user. Everything after the first two indexes is assumed '- ', '\0', or '\n'. The ' ' after the '-' is from the program moving onto the next 2 indexes beyond the command. It also looks better when using the filesystem.
 - Example
 ```
-cmd: s
+cmd: s- root
 
 
 cmd: w- file
