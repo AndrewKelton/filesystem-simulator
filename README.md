@@ -76,5 +76,4 @@ To Be Added
 -
 - Adding specific root/user privileges
 - Add passwords to root/user
-- Change between accounts and privilege accesses
 - Specifc interface for the filesystem beyond the terminal
