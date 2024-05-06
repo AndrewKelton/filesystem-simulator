@@ -44,16 +44,22 @@ void linePartition(char * line, char ** cmd, char ** file) {
 } 
 
 int main(void) {
-    controls * c = malloc(sizeof(controls));
+    controls * c = malloc(sizeof(controls)); // control structure
     if (c == NULL) exit(1);
     initc(c);
 
     char root[] = "root";
-    directory * D = initD(NULL, root);
+    directory * D = initD(NULL, root); // initial root directory
+
+    usern * userns = malloc(sizeof(usern)); // usernames trie
+
+    user * users = malloc(sizeof(user)); // user linked list to store user's directories 
+    users->name = strdup("root");
+    users->d = D;
+    users->next = NULL;
 
     char * line;
-
-    char * instruction = NULL;
+    char * instruction = NULL; 
     char * file = NULL;
     unsigned op;
 
@@ -67,18 +73,36 @@ int main(void) {
         line = input(line);
         linePartition(line, &instruction, &file);
         if (opfetch(instruction, &op)) {
-            if (setc(op, c)) {
+            if (setc(op, c, users, userns, file)) {
                 printf("\n");
-                if (op == 0x73 || op == 0x73 + 0x72 || !c->status) {
-                    goto jump; // skip to jump
-                } else if (!c->allow && !c->root) {
+                if (op == 0x71) { // exiting program
+                    printf("g ");
+                    printf("o ");
+                    printf("o ");
+                    printf("d ");
+                    printf("b ");
+                    printf("y ");
+                    printf("e \n");
+                    sleep(1);
+                    goto jump;
+                } else if (op == 0x6c + 0x6f) goto jump; // logout 
+                if (!c->allow && !c->root) {  // no access
                     printf("you must login first to access commands\n");
                 } else {
-                    if (c->back || c->printd) D = performOp(c, file, D);
+<<<<<<< HEAD
+                    if (c->back || c->printd) D = performOp(op, c, file, D, users);
                     else if (file == NULL) printf("command not directed anywhere\n");
+                    else D = performOp(op, c, file, D, users);
+=======
+                    if (file == NULL) printf("command not directed anywhere\n");
                     else D = performOp(c, file, D);
+>>>>>>> origin/master
                 }
-            } else {
+            } else if (op == 0x6e + 0x75) { 
+                addU(userns, file); // add new user
+                addULL(users, file); // add user to linked list
+                printf("\n%s added... login as %s to access their files\n", file, file);
+            } else if (op != 0x73) {
                 printf("command not found\n");
             }
         } else {
@@ -92,9 +116,7 @@ int main(void) {
         instruction = NULL;
         file = NULL;
     }
-    free(c);
-    while (D->parent != NULL) {
-        D = D->parent;
-    }
-    freeD(D); // free all directory data
+    free(c); // free control structure
+    freeU(users); // free data of users
+    freeNames(userns); // free user's names in trie
 }

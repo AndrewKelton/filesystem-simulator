@@ -30,6 +30,39 @@ void resetc(controls * c) {
     c->rm = false;
 }
 
+// add new user to users
+void addU(usern * users, char * name) {
+    for (int i = 0; i < strlen(name); i++) {
+        if (users->let[name[i] - 'a'] == NULL) users->let[name[i]- 'a'] = malloc(sizeof(usern));
+        users = users->let[name[i] - 'a'];
+        users->flag = false;
+    }
+    users->flag = true;
+}
+
+// user fetch/login
+bool ufetch(usern * names, char * name) {
+    usern * tmp = names;
+    for (int i = 0; i < strlen(name); i++) {
+        if (tmp == NULL) return false;
+        tmp = tmp->let[name[i] - 'a'];
+    }
+    return tmp->flag;
+}
+
+// check root login
+bool rootcheck(char * name) {
+    if (strcmp("root", name) == 0) return true;
+    return false;
+}
+
+// locate user in user list return user directory
+directory * userd(user * u, char * n) {
+    if (u == NULL) return NULL;
+    if (strcmp(u->name, n) == 0) return u->d;
+    return userd(u->next, n);
+}
+
 // initialize directory
 directory * initD(directory * pD, char * n) {
     directory * D = malloc(sizeof(directory));
@@ -40,6 +73,14 @@ directory * initD(directory * pD, char * n) {
     D->parent = pD;
     D->len = 0;
     return D;
+}
+
+void addULL(user * u, char * n) {
+    user * tmp = malloc(sizeof(user));
+    tmp->name = strdup(n);
+    tmp->next = u->next;
+    u->next = tmp;
+    tmp->d = initD(NULL, n);
 }
 
 // create new file
@@ -57,7 +98,7 @@ files * createF(char * fname, char * f) {
 }
 
 // set controls for operation
-bool setc(unsigned op, controls * c) {
+bool setc(unsigned op, controls * c, user * u, usern * names, char * name /*file or name of user*/) {
     switch(op) {
         case 0x62 + 0x64: // to parent directory
             c->cd = true;
@@ -65,6 +106,10 @@ bool setc(unsigned op, controls * c) {
             break;
         case 0x63 + 0x64: // change directory
             c->cd = true;
+            break;
+        case 0x6c + 0x6f: // logout user
+            c->allow = false;
+            c->root = false;
             break;
         case 0x6e + 0x64: // create new directory 
             c->newd = true;
@@ -96,12 +141,24 @@ bool setc(unsigned op, controls * c) {
             c->read = true;
             c->write = true;
             break;
-        case 0x73: // sign in to user
-            c->allow = true;
-            break;
-        case 0x73 + 0x72: // sign in to root
-            c->root = true;
-            c->allow = true;
+        /* need to do this here otherwise unauthorized access 
+             can be gained or controls will never be true */
+        case 0x73: // sign in
+            if (c->allow || c->root) { // already signed in
+                printf("\nalready signed in... sign out to change user");
+                break;
+            }
+            if (ufetch(names, name) == true) { // check for user
+                c->allow = true;
+            } else if (rootcheck(name) == true){  // check for root
+                c->allow = true;
+                c->root = true;
+            } else {
+                printf("\nuser not found\n"); // not a valid user
+                return false;
+                break;
+            }
+            printf("\nlogged in as %s", name);
             break;
         default: // invalid command
             return false;
@@ -289,6 +346,28 @@ void freeF(files * f) {
     free(f);
 }
 
+<<<<<<< HEAD
+// free user and user data from user linked list
+void freeU(user * u) {
+    if (u == NULL) return;
+    user * tmp = u->next;
+    freeD(u->d);
+    free(u->name);
+    free(u);
+    freeU(tmp);
+}
+
+// free user's names from trie
+void freeNames(usern * unames) {
+    if (unames == NULL) return;
+    for (int i = 0; i < 26; i++) {
+        freeNames(unames->let[i]);
+    }
+    free(unames);
+}
+
+=======
+>>>>>>> origin/master
 // search for directory
 directory * searchd(directory * D, char * dname) {
     if (D == NULL) return NULL;
@@ -302,9 +381,14 @@ directory * searchd(directory * D, char * dname) {
 }
 
 // do the operation
-directory * performOp(controls * c, char * fname, directory * D) {
+directory * performOp(unsigned op, controls * c, char * fname /* file name or name of user */, directory * D, user * u) {
     files * tmp;
     
+    if (op == 0x73) {
+        D = userd(u, fname);
+        return D;
+    }
+
     if (c->write && !c->read) {
         tmp = searchf(D->fs, fname);
         if (tmp == NULL) wfile(fname, D);
@@ -319,12 +403,15 @@ directory * performOp(controls * c, char * fname, directory * D) {
         else  printf("file does not exist\n");
     } else if (c->printd) {
         if (fname == NULL) printD(D);
-        else if (strcmp(fname, "path") == 0){
+        else if (strcmp(fname, "path") == 0) {
             printP(D);
             printf("\n");
         }
     } else if (c->cd && c->rm) {
+<<<<<<< HEAD
         if (fname == NULL) printf("no directory named... aborting command\n");
+=======
+>>>>>>> origin/master
         if (strcmp(D->name, fname) == 0) printf("cannot delete current directory\n");
         else if (strcmp("root", fname) == 0) printf("cannot delete root\n");
         else {
