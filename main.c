@@ -89,14 +89,9 @@ int main(void) {
                 if (!c->allow && !c->root) {  // no access
                     printf("you must login first to access commands\n");
                 } else {
-<<<<<<< HEAD
                     if (c->back || c->printd) D = performOp(op, c, file, D, users);
                     else if (file == NULL) printf("command not directed anywhere\n");
                     else D = performOp(op, c, file, D, users);
-=======
-                    if (file == NULL) printf("command not directed anywhere\n");
-                    else D = performOp(c, file, D);
->>>>>>> origin/master
                 }
             } else if (op == 0x6e + 0x75) { 
                 addU(userns, file); // add new user

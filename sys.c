@@ -346,7 +346,6 @@ void freeF(files * f) {
     free(f);
 }
 
-<<<<<<< HEAD
 // free user and user data from user linked list
 void freeU(user * u) {
     if (u == NULL) return;
@@ -366,8 +365,6 @@ void freeNames(usern * unames) {
     free(unames);
 }
 
-=======
->>>>>>> origin/master
 // search for directory
 directory * searchd(directory * D, char * dname) {
     if (D == NULL) return NULL;
@@ -403,15 +400,12 @@ directory * performOp(unsigned op, controls * c, char * fname /* file name or na
         else  printf("file does not exist\n");
     } else if (c->printd) {
         if (fname == NULL) printD(D);
-        else if (strcmp(fname, "path") == 0) {
+        else if (strcmp(fname, "path") == 0){
             printP(D);
             printf("\n");
         }
     } else if (c->cd && c->rm) {
-<<<<<<< HEAD
         if (fname == NULL) printf("no directory named... aborting command\n");
-=======
->>>>>>> origin/master
         if (strcmp(D->name, fname) == 0) printf("cannot delete current directory\n");
         else if (strcmp("root", fname) == 0) printf("cannot delete root\n");
         else {

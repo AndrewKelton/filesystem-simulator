@@ -2,11 +2,12 @@
 #include<stdlib.h>
 #include<string.h>
 #include<stdbool.h>
+#include<unistd.h>
 
 #ifndef FILESYS
 #define FILESYS
 
-// user privelages
+// user actions
 typedef struct {
     bool root;
     bool allow;
@@ -19,7 +20,13 @@ typedef struct {
     bool save;
     bool rm;
     bool status; // status of terminal
-}controls;
+} controls;
+
+// users names as Trie
+typedef struct usern {
+    struct usern * let[26];
+    bool flag;
+} usern;
 
 // sorted as binary tree
 typedef struct files {
@@ -27,7 +34,7 @@ typedef struct files {
     char * name;
     struct files * left;
     struct files * right;
-}files;
+} files;
 
 // sorted in Tree
 typedef struct directory {
@@ -39,11 +46,25 @@ typedef struct directory {
     struct directory * right;
 } directory;
 
-void initc(controls * c); // set all to false
+// user login control
+typedef struct user {
+    directory * d;
+    char * name;
+    struct user * next;
+} user;
+
+/* functions to control filesystem */
+
+void initc(controls * c); // set all controls to false
 void resetc(controls * c); // reset controls after each command
+void addU(usern * users, char * name); // add user to users
+bool ufetch(usern * users, char * name); // user fetch
+bool rootcheck(char * name); // check if user is root
+directory * userd(user * u, char * n); // grab user directory
 directory * initD(directory * pD, char * n); // initialize new directory
+void addULL(user * u, char * n); // add new user to user linked list from head->next (root always in front)
 files * createF(char * fname, char * f); // create file struct
-bool setc(unsigned op, controls * c); // set controls from operation
+bool setc(unsigned op, controls * c, user * u, usern * names, char * name /* file or name of user */); // set controls from operation
 bool opfetch(char * instr, unsigned * op); // get operation in hex
 bool compstrngs(char * n1, char * n2); // compare strings
 files * searchf(files * fs, char * fname); // search for file in directory
@@ -55,9 +76,11 @@ void printFT(files * f); // print files in directory
 void saveF(files * tmp); // save file to computer
 void printP(directory * D); // print directory path
 files * removef(files * fs, char * fname); // delete file & its contents
-directory * performOp(controls * c, char * fname, directory * D); // perform operations
-void freeD(directory * D);
-void freeF(files * f);
+directory * performOp(unsigned op, controls * c, char * fname /* file name or name of user */, directory * D, user * u); // perform operations
+void freeU(user * u); // free all contents of user
+void freeD(directory * D); // free all directory contents and directory
+void freeF(files * f); // free all file contents and file
+void freeNames(usern * unames); // free names in trie
 
 
 
