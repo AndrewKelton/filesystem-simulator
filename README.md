@@ -14,7 +14,11 @@ ABOUT filesys.h
 -
 - filesys.h is the header for accessing, creating, writing, reading, and saving files.
 - Data structures used in filesys.h:
-  - Structs used for controls, directories, and files in directories. Controls are used to controls the flow of data control which functions are used for operations. Directories are implemented with a binary tree. Files are implemented using a binary search tree, comparing their values of characters with previously inputted files.
+  - Dynamically Allocated Structs (all structs including controls struct)
+  - Linked Lists (user's data/directories)
+  - Binary Search Trees (files in each directory)
+  - Binary Trees (directories)
+  - Tries (user's names)
   
 ABOUT filesys.c
 -
