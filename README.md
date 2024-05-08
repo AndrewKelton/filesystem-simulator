@@ -43,6 +43,7 @@ Supported Commands
 | sa-        |  save file to computer           |
 | p        | print all files in directory            |
 | p- path  | print path to current directory |
+| pa       | print child directories under directory |
 | cd-        | change directory            |
 | nd-        | create new directory            |
 | rd-        | remove/delete directory and all contents
