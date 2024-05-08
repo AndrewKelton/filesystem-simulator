@@ -75,14 +75,8 @@ int main(void) {
         if (opfetch(instruction, &op)) {
             if (setc(op, c, users, userns, file)) {
                 printf("\n");
-                if (op == 0x71) { // exiting program
-                    printf("g ");
-                    printf("o ");
-                    printf("o ");
-                    printf("d ");
-                    printf("b ");
-                    printf("y ");
-                    printf("e \n");
+                if (!c->status) { // exiting program
+                    printf("g\t\t\t\t\t\te \n\to\t\t\t\ty \n\t\to\t\tb \n\t\t\td \n\t\to\t\tb \n\to\t\t\t\ty \ng\t\t\t\t\t\te\n");
                     sleep(1);
                     goto jump;
                 } else if (op == 0x6c + 0x6f) goto jump; // logout 
@@ -94,6 +88,10 @@ int main(void) {
                     else D = performOp(op, c, file, D, users);
                 }
             } else if (op == 0x6e + 0x75) { 
+                if (file == NULL) {
+                    printf("\nno user name inputted\n\n");
+                    continue;
+                }
                 addU(userns, file); // add new user
                 addULL(users, file); // add user to linked list
                 printf("\n%s added... login as %s to access their files\n", file, file);
@@ -110,6 +108,15 @@ int main(void) {
         free(file);
         instruction = NULL;
         file = NULL;
+    }
+    // reset users parent D if logged into root at end of program
+    if (users->d->left->left != NULL) {
+        users->d->left->left->parent = NULL;
+        users->d->left->left = NULL;
+    }
+    if (users->d->left->right != NULL) {
+        users->d->left->right->parent = NULL;
+        users->d->left->right = NULL;
     }
     free(c); // free control structure
     freeU(users); // free data of users

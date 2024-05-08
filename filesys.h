@@ -36,7 +36,7 @@ typedef struct files {
     struct files * right;
 } files;
 
-// sorted in Tree
+// sorted in binary tree
 typedef struct directory {
     char * name;
     int len;
@@ -61,6 +61,8 @@ void addU(usern * users, char * name); // add user to users
 bool ufetch(usern * users, char * name); // user fetch
 bool rootcheck(char * name); // check if user is root
 directory * userd(user * u, char * n); // grab user directory
+directory * rootDinit(user * u); // enable root access to user directories
+directory * disableR(user * u); // disable root accesses in directory
 directory * initD(directory * pD, char * n); // initialize new directory
 void addULL(user * u, char * n); // add new user to user linked list from head->next (root always in front)
 files * createF(char * fname, char * f); // create file struct

@@ -63,6 +63,42 @@ directory * userd(user * u, char * n) {
     return userd(u->next, n);
 }
 
+// root directory to access users and their files
+directory * rootDinit(user * u) {
+    directory * rootd = u->d;
+    rootd->left = malloc(sizeof(directory));
+    rootd->left->parent = rootd;
+    rootd = rootd->left;
+    rootd->name = strdup("users");
+
+    if (u->next == NULL) {
+        rootd->left = NULL;
+        rootd->right = NULL;
+        return u->d;
+    }
+    rootd->left = u->next->d;
+    rootd->left->parent = rootd;
+
+    if (u->next->next == NULL) {
+        rootd->right = NULL;
+        return u->d;
+    }
+    rootd->right = u->next->next->d;
+    rootd->right->parent = rootd;
+
+    rootd = rootd->parent;
+    return rootd;
+}
+
+// check if user directory still connects to root directory take away access
+directory * disableR(user * u) {
+    directory * ud = u->d;
+    if (ud->parent != NULL) {
+        ud->parent = NULL;
+    }
+    return ud;
+}
+
 // initialize directory
 directory * initD(directory * pD, char * n) {
     directory * D = malloc(sizeof(directory));
@@ -75,6 +111,7 @@ directory * initD(directory * pD, char * n) {
     return D;
 }
 
+// add user to linked list
 void addULL(user * u, char * n) {
     user * tmp = malloc(sizeof(user));
     tmp->name = strdup(n);
@@ -117,6 +154,10 @@ bool setc(unsigned op, controls * c, user * u, usern * names, char * name /*file
         case 0x70: // print directory contents
             c->printd = true;
             break;
+        case 0x70 + 0x61: // print all child directories in directory
+            c->printd = true;
+            c->read = true;
+            break;
         case 0x72 + 0x64: // remove directory and its contents
             c->rm = true;
             c->cd = true;
@@ -148,9 +189,10 @@ bool setc(unsigned op, controls * c, user * u, usern * names, char * name /*file
                 printf("\nalready signed in... sign out to change user");
                 break;
             }
-            if (ufetch(names, name) == true) { // check for user
+            if (name == NULL) break;
+            if (ufetch(names, name)) { // check for user
                 c->allow = true;
-            } else if (rootcheck(name) == true){  // check for root
+            } else if (rootcheck(name)) {  // check for root
                 c->allow = true;
                 c->root = true;
             } else {
@@ -250,6 +292,12 @@ void printFT(files * f) {
     printFT(f->right);
 }
 
+// print child directories under directory
+void printDd(directory * d) {
+    if (d->left != NULL) printf("%s\n", d->left->name);
+    if (d->right != NULL) printf("%s\n", d->right->name);
+}
+
 // read and append to file
 void rwfile(files * f) {
     int len = strlen(f->f);
@@ -298,13 +346,13 @@ void printP(directory * D) {
 files * removef(files * fs, char * fname) {
     if (fs == NULL) return NULL; // file doesn't exist random case never possible
     if (strcmp(fs->name, fname) == 0) { // file found
-        if (fs->left == NULL) { // one child
+        if (fs->left == NULL) { // one child right
             files * tmp = fs->right;
             free(fs->f);
             free(fs->name);
             free(fs);
             return tmp;
-        } else if (fs->right == NULL) { // one child 
+        } else if (fs->right == NULL) { // one child left
             files * tmp = fs->left;
             free(fs->f);
             free(fs->name);
@@ -378,15 +426,39 @@ directory * searchd(directory * D, char * dname) {
 }
 
 // do the operation
-directory * performOp(unsigned op, controls * c, char * fname /* file name or name of user */, directory * D, user * u) {
+directory * performOp(unsigned op, controls * c, char * fname/* file name or name of user */, directory * D, user * u) {
     files * tmp;
     
     if (op == 0x73) {
+        if (fname == NULL) {
+            printf("no user inputted\n");
+            return NULL;
+        }
         D = userd(u, fname);
+        if (c->root) {
+            if (D->left == NULL) {
+                D = rootDinit(u);
+            } else if (D->left->left != NULL) {
+                if (D->left->parent == NULL) {
+                    D->left->left->parent = D->left;
+                }
+            }
+            if (D->left->right != NULL) {
+                if (D->left->right->parent == NULL) {
+                    D->left->right->parent = D->left;
+                }
+            }
+        } else {
+            if (D->parent != NULL) {
+                D->parent = NULL;
+            }
+        }
         return D;
     }
 
-    if (c->write && !c->read) {
+    if (c->read && c->printd) {
+        printDd(D);
+    } else if (c->write && !c->read) {
         tmp = searchf(D->fs, fname);
         if (tmp == NULL) wfile(fname, D);
         else printf("file already exists\n");
