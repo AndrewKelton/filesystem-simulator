@@ -77,3 +77,8 @@ To Be Added
 -
 - Add passwords to root/user
 - Specifc interface for the filesystem beyond the terminal
+
+In Production
+- 
+- Currently editing entire code to allow directories to contain more than 2 children. Directories will take the structure of a general tree with a maximum of 1000 children. To store the directories under the current directory in this fashion, I will use a hash function to store child 'x' in directory->child[x % 1000]. 'x' will be the hexadecimal value of the name of the directory. If there are collisions, a linear probing function will be called and try the next available spot from the new 'x value. Since linear probing will be used, the name of the directory stored in the child will be useful in case that directory has caused a collision. To check if that directory is truly the correct one we want to go to, we will compare both strings to check if that is the correct one, if not linear probing is used until we find that directory. If directory->child is full then no action is taken. To check if it is full each parent directory of the children will store a flag of 'true' or 'false'. 'false' means directory is full, 'true' means directory is not full.
+- TLDR: Directories will have a general tree structure with 1000 children max. Files will keep BST structure.
