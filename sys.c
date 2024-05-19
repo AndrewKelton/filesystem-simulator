@@ -2,6 +2,9 @@
 #define MAX 99999999
 #define MAXLINE 80
 #define MAXFLEN 1000
+#define DNUM 97
+
+int count = 0;
 
 // set all controls false
 void initc(controls * c) {
@@ -56,6 +59,27 @@ bool rootcheck(char * name) {
     return false;
 }
 
+// hash value 
+int hashD(int a) {
+    return a % DNUM;
+}
+
+// quadratic probing
+int qProbe(int a, int i) {
+    return a + (i * i);
+}
+
+// get child hash value
+int checkChild(directory * d, int a, int i) {
+    if (d->full == true) return -1;
+    int b = hashD(a);
+    if (d->child[b] == NULL) {
+       return b;
+    }
+    a = qProbe(a, i);
+    return checkChild(d, a, i+1);
+}
+
 // locate user in user list return user directory
 directory * userd(user * u, char * n) {
     if (u == NULL) return NULL;
@@ -63,30 +87,29 @@ directory * userd(user * u, char * n) {
     return userd(u->next, n);
 }
 
-// root directory to access users and their files
+// initialize users directory in root
+directory * userRootDirectoryInit(directory * d) {
+    d->child[0] = malloc(sizeof(directory));
+    d->child[0]->full = false;
+    d->child[0]->parent = d;
+    d->child[0]->len = 0;
+    d->child[0]->name = strdup("users");
+    d->child[0]->child = malloc(sizeof(directory *) * DNUM);
+    d->child[0]->fs = NULL;
+    return d;
+}
+
+// initialize root directory to access users and their files
 directory * rootDinit(user * u) {
     directory * rootd = u->d;
-    rootd->left = malloc(sizeof(directory));
-    rootd->left->parent = rootd;
-    rootd = rootd->left;
-    rootd->name = strdup("users");
-
-    if (u->next == NULL) {
-        rootd->left = NULL;
-        rootd->right = NULL;
-        return u->d;
+    userRootDirectoryInit(rootd);
+    user * tmpu = u->next;
+    int i = 0;
+    while (tmpu != NULL) {
+        rootd->child[0]->child[i] = tmpu->d;
+        rootd->child[0]->child[i++]->parent = rootd->child[0];
+        tmpu = tmpu->next;
     }
-    rootd->left = u->next->d;
-    rootd->left->parent = rootd;
-
-    if (u->next->next == NULL) {
-        rootd->right = NULL;
-        return u->d;
-    }
-    rootd->right = u->next->next->d;
-    rootd->right->parent = rootd;
-
-    rootd = rootd->parent;
     return rootd;
 }
 
@@ -103,12 +126,19 @@ directory * disableR(user * u) {
 directory * initD(directory * pD, char * n) {
     directory * D = malloc(sizeof(directory));
     D->fs = NULL;
-    D->left = NULL;
-    D->right = NULL;
+    D->full = false;
     D->name =  strdup(n);
-    D->parent = pD;
     D->len = 0;
+    D->parent = pD;
+    D->child = malloc(sizeof(directory *) * DNUM);
     return D;
+}
+
+// add new directory
+directory * addtoD(directory * pD, char * name) {
+    int h = checkChild(pD, atoi(name), 1);
+    pD->child[h] = initD(pD, name);
+    return pD;
 }
 
 // add user to linked list
@@ -118,6 +148,38 @@ void addULL(user * u, char * n) {
     tmp->next = u->next;
     u->next = tmp;
     tmp->d = initD(NULL, n);
+}
+
+// add user directories to root directory
+void addUserstoRootD(user * u) {
+    directory * rootd = u->d;
+    int i = 0;
+    while(u->next != NULL) {
+        u = u->next;
+        rootd->child[0]->child[i] = u->d;
+    }
+}
+
+// get number of users
+int numUsers(user * u) {
+    if (u == NULL) return 0;
+    return 1 + numUsers(u->next);
+}
+
+// check if directory is full
+bool isFull(directory * d) {
+    for (int i = 0; i < DNUM; i++) {
+        if (d->child[i] == NULL) return false;
+    }
+    return true;
+}
+
+// reset root user directories
+void resetRootD(user * u) {
+    int len = numUsers(u);
+    for (int i = 0; i < len; i++) {
+        u->d->child[0]->child[i] = NULL;
+    }
 }
 
 // create new file
@@ -143,6 +205,8 @@ bool setc(unsigned op, controls * c, user * u, usern * names, char * name /*file
             break;
         case 0x63 + 0x64: // change directory
             c->cd = true;
+            break;
+        case 0x68: // print all commands
             break;
         case 0x6c + 0x6f: // logout user
             c->allow = false;
@@ -278,7 +342,7 @@ void rfile(files * f) {
     printf("\n");
 }
 
-// print diretory
+// print directory
 void printD(directory * D) {
     printf("%s:\n", D->name);
     printFT(D->fs);
@@ -294,8 +358,13 @@ void printFT(files * f) {
 
 // print child directories under directory
 void printDd(directory * d) {
-    if (d->left != NULL) printf("%s\n", d->left->name);
-    if (d->right != NULL) printf("%s\n", d->right->name);
+    if (d->child == NULL) return;
+    for (int i = 0; i < DNUM; i++) {
+        if (d->child[i] != NULL) {
+            printf("%s\t", d->child[i]->name);
+        }
+    }
+    printf("\n");
 }
 
 // read and append to file
@@ -344,7 +413,7 @@ void printP(directory * D) {
 
 // remove file in tree and update tree
 files * removef(files * fs, char * fname) {
-    if (fs == NULL) return NULL; // file doesn't exist random case never possible
+    if (fs == NULL) return NULL; // file doesn't exist random case never possible to be true
     if (strcmp(fs->name, fname) == 0) { // file found
         if (fs->left == NULL) { // one child right
             files * tmp = fs->right;
@@ -377,10 +446,14 @@ files * removef(files * fs, char * fname) {
 // free directories
 void freeD(directory * D) {
     if (D == NULL) return;
-    freeD(D->left);
-    freeD(D->right);
+    if (D->child != NULL) {
+        for (int i = 0; i < DNUM; i++) {
+            freeD(D->child[i]);
+        }
+    }
     freeF(D->fs);
     free(D->name);
+    free(D->child);
     free(D);
 }
 
@@ -413,138 +486,152 @@ void freeNames(usern * unames) {
     free(unames);
 }
 
-// search for directory
-directory * searchd(directory * D, char * dname) {
-    if (D == NULL) return NULL;
-    if (strcmp(D->name, dname) == 0) return D;
-    directory * l = searchd(D->left, dname);
-    if (l != NULL) {
-        if (strcmp(l->name, dname) == 0) return l;
+// search for directory index
+int searchd(directory * D, char * dname) {
+    if (D == NULL) return -1;
+    int a = atoi(dname);
+    a = hashD(a);
+    if (D->child[a] == NULL) return -1;
+    if (strcmp(D->child[a]->name, dname) == 0) return a;
+    int i = 1;
+    int h = qProbe(a, i);
+    i++;
+    while (count != DNUM) {
+        h = hashD(h);
+        count++;
+        if (D->child[h] != NULL) {
+            if (strcmp(D->child[h]->name, dname) == 0) {
+                count = 0;
+                return h;
+            }
+        }
+        h = qProbe(h, i);
+        i++;
     }
-    directory * r = searchd(D->right, dname);
-    return r;
+    count = 0;
+    return -1;
+}
+
+// help function to print all commands
+void helpP() {
+    printf("******************************************************\n\n");
+    printf("...all commands containing '-' require a ' ' before inputting destination/user...\n");
+    printf("...all commands require lowercase input, files may be anything...\n\n");
+    printf("-----------------------commands-----------------------\n");
+    printf("s- \t|\t login\n");
+    printf("nu- \t|\t create new user\n");
+    printf("lo \t|\t logout\n");
+    printf("w- \t|\t write/create file\n");
+    printf("r- \t|\t read file\n");
+    printf("rw- \t|\t read file and write to it (starting from same line)\n");
+    printf("rm- \t|\t remove/delete file\n");
+    printf("sa- \t|\t save file to computer memory\n");
+    printf("p \t|\t print all files in current directory\n");
+    printf("p- path |\t print path to current directory\n");
+    printf("pa \t|\t print all child directories under current directory\n");
+    printf("cd- \t|\t change directory to destination\n");
+    printf("nd- \t|\t create new directory\n");
+    printf("rd- \t|\t remove/delete directory and its contents\n");
+    printf("bd \t|\t change to parent directory\n");
+    printf("q \t|\t quit program and free all memory\n");
+    printf("h \t|\t print all commands... what you just did\n\n");
+    printf("******************************************************\n");
 }
 
 // do the operation
 directory * performOp(unsigned op, controls * c, char * fname/* file name or name of user */, directory * D, user * u) {
     files * tmp;
     
+    D->full = isFull(D);
+
     if (op == 0x73) {
         if (fname == NULL) {
             printf("no user inputted\n");
             return NULL;
         }
         D = userd(u, fname);
-        if (c->root) {
-            if (D->left == NULL) {
-                D = rootDinit(u);
-            } else if (D->left->left != NULL) {
-                if (D->left->parent == NULL) {
-                    D->left->left->parent = D->left;
-                }
-            }
-            if (D->left->right != NULL) {
-                if (D->left->right->parent == NULL) {
-                    D->left->right->parent = D->left;
-                }
-            }
-        } else {
+        if (!c->root) {
             if (D->parent != NULL) {
                 D->parent = NULL;
             }
+        } else {
+            D = rootDinit(u);
         }
         return D;
     }
 
     if (c->read && c->printd) {
         printDd(D);
+
     } else if (c->write && !c->read) {
         tmp = searchf(D->fs, fname);
         if (tmp == NULL) wfile(fname, D);
         else printf("file already exists\n");
+
     } else if (!c->write && c->read) {
         tmp = searchf(D->fs, fname);
         if (tmp != NULL) rfile(tmp);
         else printf("file does not exist\n");
+
     } else if (c->write && c->read) {
         tmp = searchf(D->fs, fname);
         if (tmp != NULL) rwfile(tmp);
         else  printf("file does not exist\n");
+
     } else if (c->printd) {
         if (fname == NULL) printD(D);
         else if (strcmp(fname, "path") == 0){
             printP(D);
             printf("\n");
         }
+
     } else if (c->cd && c->rm) {
         if (fname == NULL) printf("no directory named... aborting command\n");
         if (strcmp(D->name, fname) == 0) printf("cannot delete current directory\n");
         else if (strcmp("root", fname) == 0) printf("cannot delete root\n");
         else {
-            directory * tmp = searchd(D, fname);
-            if (tmp == NULL) printf("directory does not exist\n");
+            int idx = searchd(D, fname);
+            if (idx == -1) printf("directory does not exist\n");
             else {
-                if (tmp->parent->left != NULL) {
-                    if (strcmp(tmp->parent->left->name, tmp->name) == 0) tmp->parent->left = NULL;
-                    else tmp->parent->right = NULL;
-                } else tmp->parent->right = NULL;
-                freeD(tmp);
+                freeD(D->child[idx]);
+                D->child[idx] = NULL;
+                D->full = false;
             }
         }
+
     } else if (c->cd && !c->back) {
         if (fname == NULL) {
             printf("no directory named... aborting command\n");
             goto jump;
         }
-        if (D->left == NULL && D->right == NULL) {
+        int idx = searchd(D, fname);
+        if (idx == -1) {
             printf("directory does not exist\n");
-            goto jump;
+        } else {
+            D = D->child[idx];
         }
-        if (D->left != NULL) 
-            if (strcmp(D->left->name, fname) == 0) {
-                D = D->left;
-                goto jump;
-            }
-        if (D->right != NULL) 
-            if (strcmp(D->right->name, fname) == 0) {
-                D = D->right;
-                goto jump;
-            }
-        printf("directory does not exist\n");
+        
     } else if (c->newd) {
-        if (D->left == NULL && D->right == NULL) {
-            D->left = initD(D, fname);
+        if (searchd(D, fname) != -1) {
+            printf("directory is already a child directory\n");
             goto jump;
-        }
-        if (D->left == NULL && D->right != NULL) {
-            if (strcmp(D->right->name, fname) == 0) {
-                printf("directory is already a child directory\n");
-                goto jump;
-            } else {
-                D->left = initD(D, fname);
-                goto jump;
-            }
-        }
-        if (D->left != NULL && D->right == NULL) {
-            if (strcmp(D->left->name, fname) == 0) {
-                printf("directory is already a child directory\n");
-                goto jump;
-            } else {
-                D->right = initD(D, fname);
-                goto jump;
-            }
-        }
-        if  (D->left != NULL && D->right != NULL) {
+        } 
+        int h = checkChild(D, atoi(fname), 1);
+        if (D->full) {
             printf("no open directory path... cd and start again\n");
-            goto jump;
+        } else {
+            D->child[h] = initD(D, fname);
         }
+
     } else if (c->cd && c->back) {
         if (D->parent == NULL) printf("no parent directory...\n");
         else D = D->parent;
+
     } else if (c->save) {
         tmp = searchf(D->fs, fname);
         if (tmp == NULL) printf("file does not exist\n");
         else saveF(tmp);
+
     } else if (c->rm) {
         tmp = searchf(D->fs, fname);
         if (tmp == NULL) printf("file does not exist\n");

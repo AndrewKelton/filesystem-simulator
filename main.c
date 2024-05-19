@@ -1,6 +1,7 @@
 #include "filesys.h"
 #define MAX 99999999
 #define INSTR_SZ 3 // instruction size
+#define DNUM 97
 
 // get input
 char * input(char * line) {
@@ -50,6 +51,7 @@ int main(void) {
 
     char root[] = "root";
     directory * D = initD(NULL, root); // initial root directory
+    D = userRootDirectoryInit(D);
 
     usern * userns = malloc(sizeof(usern)); // usernames trie
 
@@ -80,12 +82,15 @@ int main(void) {
                     sleep(1);
                     goto jump;
                 } else if (op == 0x6c + 0x6f) goto jump; // logout 
-                if (!c->allow && !c->root) {  // no access
-                    printf("you must login first to access commands\n");
-                } else {
-                    if (c->back || c->printd) D = performOp(op, c, file, D, users);
-                    else if (file == NULL) printf("command not directed anywhere\n");
-                    else D = performOp(op, c, file, D, users);
+                if (op == 0x68) helpP();
+                else {
+                    if (!c->allow && !c->root) {  // no access
+                        printf("you must login first to access commands\n");
+                    } else {
+                        if (c->back || c->printd) D = performOp(op, c, file, D, users);
+                        else if (file == NULL) printf("command not directed anywhere\n");
+                        else D = performOp(op, c, file, D, users);
+                    }
                 }
             } else if (op == 0x6e + 0x75) { 
                 if (file == NULL) {
@@ -109,15 +114,40 @@ int main(void) {
         instruction = NULL;
         file = NULL;
     }
+
     // reset users parent D if logged into root at end of program
-    if (users->d->left->left != NULL) {
-        users->d->left->left->parent = NULL;
-        users->d->left->left = NULL;
+    user * tmpu = users;
+    while (tmpu != NULL) {
+        tmpu->d = disableR(tmpu);
+        tmpu = tmpu->next;
     }
-    if (users->d->left->right != NULL) {
-        users->d->left->right->parent = NULL;
-        users->d->left->right = NULL;
-    }
+
+    /* ------------------------------------------------------ */
+
+    /* uncomment this to view user's data at end of program */
+
+    // tmpu = users
+    // FILE * f = fopen("test.txt", "w"); 
+    // while (tmpu != NULL) {
+    //     fprintf(f, "------------------------------\n");
+    //     fprintf(f, "name %s\n", users->name);
+    //     for (int i = 0; i < 97; i++) {
+    //         if (tmpu->d->child[i] != NULL) {
+    //             directory * tmp = users->d;
+    //             fprintf(f, "Directory %s\n", users->d->name);
+    //             fprintf(f, "------------------\n");
+    //             fprintf(f, "Child Directories\n");
+    //             fprintf(f, "------------------\n");
+    //             fprintf(f, "%s\n", tmp->child[i]->name);
+    //         }
+    //     }
+    //     fprintf(f, "------------------------------\n");
+    //     users = users->next;
+    // }
+    // fclose(f);
+    
+    /* ------------------------------------------------------ */
+
     free(c); // free control structure
     freeU(users); // free data of users
     freeNames(userns); // free user's names in trie
