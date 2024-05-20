@@ -33,6 +33,7 @@ Supported Commands
 -
 | Command | Action |
 | ------- | ----------- |
+| h       | display commands |
 | s-       | login       | 
 | nu-      | create new user |
 | lo       | logout user |
