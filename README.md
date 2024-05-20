@@ -79,4 +79,4 @@ cmd: q
 To Be Added
 -
 - Add passwords to root/user
-- Specifc interface for the filesystem beyond the terminal
+- Specifc user interface for the filesystem beyond the terminal
