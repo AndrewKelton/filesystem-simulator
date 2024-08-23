@@ -72,6 +72,7 @@ int qProbe(int a, int i) {
 // get child hash value
 int checkChild(directory * d, int a, int i) {
     if (d->full == true) return -1;
+    
     int b = hashD(a);
     if (d->child[b] == NULL) {
        return b;
@@ -96,14 +97,17 @@ directory * userRootDirectoryInit(directory * d) {
     d->child[0]->name = strdup("users");
     d->child[0]->child = malloc(sizeof(directory *) * DNUM);
     d->child[0]->fs = NULL;
+    
     return d;
 }
 
 // initialize root directory to access users and their files
 directory * rootDinit(user * u) {
     directory * rootd = u->d;
+    
     userRootDirectoryInit(rootd);
     user * tmpu = u->next;
+    
     int i = 0;
     while (tmpu != NULL) {
         rootd->child[0]->child[i] = tmpu->d;
@@ -116,21 +120,21 @@ directory * rootDinit(user * u) {
 // check if user directory still connects to root directory take away access
 directory * disableR(user * u) {
     directory * ud = u->d;
-    if (ud->parent != NULL) {
-        ud->parent = NULL;
-    }
+    if (ud->parent != NULL) ud->parent = NULL;
     return ud;
 }
 
 // initialize directory
 directory * initD(directory * pD, char * n) {
     directory * D = malloc(sizeof(directory));
+    
     D->fs = NULL;
     D->full = false;
     D->name =  strdup(n);
     D->len = 0;
     D->parent = pD;
     D->child = malloc(sizeof(directory *) * DNUM);
+    
     return D;
 }
 
@@ -153,6 +157,7 @@ void addULL(user * u, char * n) {
 // add user directories to root directory
 void addUserstoRootD(user * u) {
     directory * rootd = u->d;
+    
     int i = 0;
     while(u->next != NULL) {
         u = u->next;
@@ -185,14 +190,17 @@ void resetRootD(user * u) {
 // create new file
 files * createF(char * fname, char * f) {
     files * newF = malloc(sizeof(files));
+    
     if (newF == NULL) {
         printf("memory allocation failed\n");
         exit(1);
     }
+    
     newF->name = strdup(fname);
     newF->f = strdup(f);
     newF->left = NULL;
     newF->right = NULL;
+    
     return newF;
 }
 
@@ -284,6 +292,7 @@ bool opfetch(char * instr, unsigned * op) {
 // compare entire strings in case any similar characters
 bool compstrngs(char * n1, char * n2) {
     int len = (strlen(n1) >= strlen(n2)) ? strlen(n2) : strlen(n1);
+    
     for (int i = 0; i < len; i++) {
         if (n1[i] -'a' > n2[i] - 'a') return true;
         else if (n1[i] -'a' < n2[i] - 'a') return false;
@@ -297,6 +306,7 @@ files * searchf(files * fs, char * fname) {
     if (strcmp(fs->name, fname) == 0) return fs;
     if (compstrngs(fs->name, fname)) fs = searchf(fs->left, fname);
     else fs = searchf(fs->right, fname);
+    
     return fs;
 }
 
@@ -310,6 +320,7 @@ files * addFT(files * fs, char * fname, char * file) {
         strcpy(fs->f, file);
         return fs;
     }
+    
     if (compstrngs(fs->name, fname)) fs->left = addFT(fs->left, fname, file);
     else fs->right = addFT(fs->right, fname, file);
     return fs;
@@ -318,6 +329,7 @@ files * addFT(files * fs, char * fname, char * file) {
 // create and write to file 
 void wfile(char * fname, directory * D) {
     char * f = malloc(sizeof(char) * MAXFLEN);
+    
     printf("HELLO\n");
     printf("to finish writing press return\n");
 
@@ -335,6 +347,7 @@ void wfile(char * fname, directory * D) {
 void rfile(files * f) {
     int len = strlen(f->f);
     f->f[len] = '\0';
+    
     for (int i = 0; i < len; i++) {
         if (i % MAXLINE == 0) printf("\n");
         printf("%c", f->f[i]);
@@ -359,6 +372,7 @@ void printFT(files * f) {
 // print child directories under directory
 void printDd(directory * d) {
     if (d->child == NULL) return;
+    
     for (int i = 0; i < DNUM; i++) {
         if (d->child[i] != NULL) {
             printf("%s\t", d->child[i]->name);
@@ -374,12 +388,13 @@ void rwfile(files * f) {
         if (i % 80 == 0) printf("\n");
         printf("%c", f->f[i]);
     }
-
     printf("\n");
 
     char * buffer = malloc(sizeof(char) * MAXFLEN-len);
     printf("to finish writing press press return\n");
+    
     if (fgets(buffer, MAXFLEN-1, stdin) == NULL) buffer[strlen(buffer + 1)] = '\0';
+    
     f->f[strlen(f->f)-1] = '\0';
     strcat(f->f, buffer);
     free(buffer);
@@ -390,10 +405,12 @@ void rwfile(files * f) {
 // save file to computer memory
 void saveF(files * tmp) {
     char * tmpname = malloc(sizeof(char) * (strlen(tmp->f) + 4));
+    
     if (tmpname == NULL) {
         printf("memory allocation failed\n");
         exit(1);
     }
+    
     strcpy(tmpname, tmp->name);
     strcat(tmpname, ".txt");
     FILE * fsave = fopen(tmpname, "w");
@@ -414,6 +431,7 @@ void printP(directory * D) {
 // remove file in tree and update tree
 files * removef(files * fs, char * fname) {
     if (fs == NULL) return NULL; // file doesn't exist random case never possible to be true
+    
     if (strcmp(fs->name, fname) == 0) { // file found
         if (fs->left == NULL) { // one child right
             files * tmp = fs->right;
@@ -446,6 +464,7 @@ files * removef(files * fs, char * fname) {
 // free directories
 void freeD(directory * D) {
     if (D == NULL) return;
+    
     if (D->child != NULL) {
         for (int i = 0; i < DNUM; i++) {
             freeD(D->child[i]);
@@ -480,6 +499,7 @@ void freeU(user * u) {
 // free user's names from trie
 void freeNames(usern * unames) {
     if (unames == NULL) return;
+    
     for (int i = 0; i < 26; i++) {
         freeNames(unames->let[i]);
     }
@@ -489,10 +509,12 @@ void freeNames(usern * unames) {
 // search for directory index
 int searchd(directory * D, char * dname) {
     if (D == NULL) return -1;
+    
     int a = atoi(dname);
     a = hashD(a);
     if (D->child[a] == NULL) return -1;
     if (strcmp(D->child[a]->name, dname) == 0) return a;
+    
     int i = 1;
     int h = qProbe(a, i);
     i++;
